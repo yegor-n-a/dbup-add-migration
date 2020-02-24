@@ -1,5 +1,5 @@
-[![NuGet](https://img.shields.io/nuget/dt/dbup-add-migration.svg)](https://www.nuget.org/packages/dbup-add-migration/)
-[![NuGet](https://img.shields.io/nuget/v/dbup-add-migration.svg)](https://www.nuget.org/packages/dbup-add-migration/)
+[![NuGet](https://img.shields.io/nuget/dt/dbup-add-migration-cmd.svg)](https://www.nuget.org/packages/dbup-add-migration-cmd/)
+[![NuGet](https://img.shields.io/nuget/v/dbup-add-migration-cmd.svg)](https://www.nuget.org/packages/dbup-add-migration-cmd/)
 
 # Add-Migration command for DbUp
 **Add-Migration** Package Manager Console command intended for use with [DbUp](http://dbup.github.io/) (but not depending on it)
@@ -86,6 +86,6 @@ The "executionMode" field should contain one of the following values:
 However, if you have the settings file in your project and specify the `-BuildAction`, `-Folder` or `-ExecutionMode` parameters anyway when generating a new migration, they will take precedence over the values in `dbup-add-migration.json`
 
 ## How to install
-You can install this package from [NuGet](https://www.nuget.org/packages/dbup-add-migration/)
+You can install this package from [NuGet](https://www.nuget.org/packages/dbup-add-migration-cmd/)
     
     Install-Package dbup-add-migration
