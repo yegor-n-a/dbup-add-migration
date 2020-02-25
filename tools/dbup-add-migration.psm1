@@ -27,6 +27,10 @@
     #apply folder and build action values from settings file
     #(only if folder is not specified and build action is 'None')
     Apply-Settings -folder ([ref]$Folder) -buildAction ([ref]$BuildAction) -executionMode ([ref]$ExecutionMode) -settings $settings
+    
+    # TODO: finish implementation
+    $visualStudioVersion = $settings.VisualStudioVersion
+    $fullPath = [VisualStudioSolutionExplorer]::getSelectedItemFullPath($visualStudioVersion) | Out-Host
 
     #check if the scripts folder is specified
     if ($Folder -ne "") {
@@ -140,13 +144,23 @@ function Add-MigrationSettings {
         else {
             $defaultExecutionMode = $null
         }
+
+        $defaultVisualStudioVersion = [Settings]::getDefaultVisualStudioVersion()
+
+        if ([System.String]::IsNullOrWhiteSpace($defaultVisualStudioVersion)) {
+            $visualStudioVersion = $null
+        }
+        else {
+            $visualStudioVersion = $defaultVisualStudioVersion
+        }
         
         #composing default settings
         $defaultSettings = [PSCustomObject]@{
-            folder        = [Settings]::getDefaultFolder()
-            buildAction   = [Settings]::getDefaultBuildAction()
-            executionMode = $defaultExecutionMode
-            file          = $defaultFileSettings
+            folder              = [Settings]::getDefaultFolder()
+            buildAction         = [Settings]::getDefaultBuildAction()
+            executionMode       = $defaultExecutionMode
+            visualStudioVersion = $visualStudioVersion
+            file                = $defaultFileSettings
         }
 
         #converting default settings into json-file
@@ -185,10 +199,12 @@ class Settings {
     [string] $BuildAction
     [File] $File
     [ExecutionMode] $ExecutionMode
+    [string] $VisualStudioVersion
 
     hidden static [string] $defaultFolder = "Migrations"
     hidden static [string] $defaultBuildAction = "EmbeddedResource"
     hidden static [ExecutionMode] $defaultExecutionMode = [ExecutionMode]::None
+    hidden static [string] $defaultVisualStudioVersion = "VisualStudio.DTE.15.0"
 
     static [string] getDefaultFolder() {
         return [Settings]::defaultFolder
@@ -200,6 +216,10 @@ class Settings {
     
     static [ExecutionMode] getDefaultExecutionMode() {
         return [Settings]::defaultExecutionMode
+    }
+    
+    static [string] getDefaultVisualStudioVersion() {
+        return [Settings]::defaultVisualStudioVersion
     }
 
     static [Settings] readFromFile([string]$FilePath) {    
@@ -217,13 +237,15 @@ class Settings {
         $this.BuildAction = [Settings]::getDefaultBuildAction()
         $this.File = [File]::new()
         $this.ExecutionMode = [Settings]::getDefaultExecutionMode()
+        $this.VisualStudioVersion = [Settings]::getDefaultVisualStudioVersion()
     }
 
-    Settings([string] $Folder, [string] $BuildAction, [File] $File, [ExecutionMode] $ExecutionMode) {
+    Settings([string] $Folder, [string] $BuildAction, [File] $File, [ExecutionMode] $ExecutionMode, [string] $VisualStudioVersion) {
         $this.Folder = $Folder
         $this.BuildAction = $BuildAction
         $this.File = $File
         $this.ExecutionMode = $ExecutionMode
+        $this.VisualStudioVersion = $VisualStudioVersion
     }
 }
 
@@ -272,6 +294,41 @@ class File {
         $this.Name = $Name
         $this.SegmentSeparator = $SegmentSeparator
         $this.PrefixFormat = $PrefixFormat
+    }
+}
+
+class VisualStudioSolutionExplorer {
+    hidden static [guid] $physicalFolderIdConst = "6bb5f8ef-4483-11d3-8bcf-00c04f8ec28c"
+
+    static [guid] getPhysicalFolderIdConst() {
+        return [VisualStudioSolutionExplorer]::physicalFolderIdConst
+    }
+
+    static [string] getSelectedItemFullPath([string] $visualStudioDteVersion) {
+        $dteObject = [System.Runtime.InteropServices.Marshal]::GetActiveObject($visualStudioDteVersion)
+
+        $multipleItemsSelected = $dteObject.SelectedItems.MultiSelect
+    
+        #exit if multiple items have been selected
+        if ($multipleItemsSelected) {
+            return $null
+        }
+    
+        $projectItem = $dteObject.SelectedItems.Item(1).ProjectItem
+    
+        #exit if selected item is solution/virtual folder/project
+        if ($null -eq $projectItem) {
+            return $null
+        }
+    
+        [guid] $projectItemId = $projectItem.Kind
+        [guid] $physicalFolderId = [VisualStudioSolutionExplorer]::getPhysicalFolderIdConst()
+    
+        if ($projectItemId -ne $physicalFolderId) {
+            return $null   
+        }
+    
+        return $projectItem.Properties.Item("FullPath").Value.ToString()
     }
 }
 
