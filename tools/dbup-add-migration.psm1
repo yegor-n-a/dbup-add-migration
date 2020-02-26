@@ -297,6 +297,32 @@ class File {
     }
 }
 
+class Folder {
+    [string] $RelativeToProjectInPkgMgmtConsole
+    [bool] $TakeSelectedInSolutionExplorer
+
+    hidden static [string] $defaultRelativeToProjectInPkgMgmtConsole = "Migrations"
+    hidden static [bool] $defaultTakeSelectedInSolutionExplorer = $false
+
+    static [string] getDefaultRelativeToProjectInPkgMgmtConsole() {
+        return [Folder]::defaultRelativeToProjectInPkgMgmtConsole
+    }
+
+    static [bool] getDefaultTakeSelectedInSolutionExplorer() {
+        return [Folder]::defaultTakeSelectedInSolutionExplorer
+    }
+
+    Folder() {
+        $this.RelativeToProjectInPkgMgmtConsole = [Folder]::defaultRelativeToProjectInPkgMgmtConsole
+        $this.TakeSelectedInSolutionExplorer = [Folder]::defaultTakeSelectedInSolutionExplorer
+    }
+
+    Folder([string] $relativeToProjectInPkgMgmtConsole, [bool] $takeSelectedInSolutionExplorer) {
+        $this.RelativeToProjectInPkgMgmtConsole = $relativeToProjectInPkgMgmtConsole
+        $this.TakeSelectedInSolutionExplorer = $takeSelectedInSolutionExplorer
+    }
+}
+
 class VisualStudioSolutionExplorer {
     hidden static [guid] $physicalFolderIdConst = "6bb5f8ef-4483-11d3-8bcf-00c04f8ec28c"
 
