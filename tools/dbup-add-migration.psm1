@@ -107,7 +107,7 @@ function Add-Migration {
 function Apply-Settings([ref]$folder, [ref]$buildAction, [ref]$executionMode, [Settings]$settings) {    
     # Overwrite $folder value only if it's not already set
     if ($folder.Value -eq "") {
-        $folder.Value = $settings.Folder
+        $folder.Value = $settings.Folder.RelativeToProjectInPkgMgmtConsole
     }
         
     # Overwrite $buildAction value only if it's set to 'None'
@@ -134,10 +134,11 @@ function Add-MigrationSettings {
     else {
         # Create the file
         New-Item -Path $projectDir -Name $settingsFileName -ItemType File | Out-Null
-        
+
         # Getting default file settings
         $defaultFileSettings = [File]::new() | Select-Object -Property * -ExcludeProperty Name
 
+        # Getting default script execution mode
         if ([Settings]::getDefaultExecutionMode() -ne [ExecutionMode]::None) {
             $defaultExecutionMode = [Settings]::getDefaultExecutionMode().ToString()
         }
@@ -145,6 +146,7 @@ function Add-MigrationSettings {
             $defaultExecutionMode = $null
         }
 
+        # Getting default Visual Studio version
         $defaultVisualStudioVersion = [Settings]::getDefaultVisualStudioVersion()
 
         if ([System.String]::IsNullOrWhiteSpace($defaultVisualStudioVersion)) {
@@ -156,11 +158,11 @@ function Add-MigrationSettings {
         
         # Composing default settings
         $defaultSettings = [PSCustomObject]@{
-            folder              = [Settings]::getDefaultFolder()
-            buildAction         = [Settings]::getDefaultBuildAction()
-            executionMode       = $defaultExecutionMode
-            visualStudioVersion = $visualStudioVersion
-            file                = $defaultFileSettings
+            Folder              = [Folder]::new()
+            BuildAction         = [Settings]::getDefaultBuildAction()
+            ExecutionMode       = $defaultExecutionMode
+            VisualStudioVersion = $visualStudioVersion
+            File                = $defaultFileSettings
         }
 
         # Converting default settings into json-file
@@ -195,20 +197,15 @@ function Remove-NullOrEmpty {
 }
 
 class Settings {
-    [string] $Folder
+    [Folder] $Folder
     [string] $BuildAction
     [File] $File
     [ExecutionMode] $ExecutionMode
     [string] $VisualStudioVersion
 
-    hidden static [string] $defaultFolder = "Migrations"
     hidden static [string] $defaultBuildAction = "EmbeddedResource"
     hidden static [ExecutionMode] $defaultExecutionMode = [ExecutionMode]::None
     hidden static [string] $defaultVisualStudioVersion = "VisualStudio.DTE.15.0"
-
-    static [string] getDefaultFolder() {
-        return [Settings]::defaultFolder
-    }
 
     static [string] getDefaultBuildAction() {
         return [Settings]::defaultBuildAction
@@ -233,14 +230,14 @@ class Settings {
     }
     
     Settings() {
-        $this.Folder = [Settings]::getDefaultFolder()
+        $this.Folder = [Folder]::new()
         $this.BuildAction = [Settings]::getDefaultBuildAction()
         $this.File = [File]::new()
         $this.ExecutionMode = [Settings]::getDefaultExecutionMode()
         $this.VisualStudioVersion = [Settings]::getDefaultVisualStudioVersion()
     }
 
-    Settings([string] $Folder, [string] $BuildAction, [File] $File, [ExecutionMode] $ExecutionMode, [string] $VisualStudioVersion) {
+    Settings([Folder] $Folder, [string] $BuildAction, [File] $File, [ExecutionMode] $ExecutionMode, [string] $VisualStudioVersion) {
         $this.Folder = $Folder
         $this.BuildAction = $BuildAction
         $this.File = $File
@@ -352,11 +349,18 @@ class VisualStudioSolutionExplorer {
         [guid] $projectItemId = $projectItem.Kind
         [guid] $physicalFolderId = [VisualStudioSolutionExplorer]::getPhysicalFolderIdConst()
     
+        # Exit if selected item is not a physical folder
         if ($projectItemId -ne $physicalFolderId) {
             return $null   
         }
-    
-        return $projectItem.Properties.Item("FullPath").Value.ToString()
+
+        [string] $fullPath = $projectItem.Properties.Item("FullPath").Value.ToString()
+        
+        if (!(Test-Path $fullPath)) {
+            return $null   
+        }
+
+        return $fullPath
     }
 }
 
